@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMI Calculator.xlsx — Interactive Workbook Preview</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <!-- Font Awesome for Excel / Financial Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            excel: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              600: '#16a34a',
+              700: '#107c41',
+              800: '#0b5c30',
+              900: '#064e27',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Custom scrollbar for tables and matrices */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .formula-bar {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Top Excel-Inspired Ribbon / Header -->
+  <header class="bg-excel-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="bg-white/15 p-2.5 rounded-xl border border-white/20 flex items-center justify-center">
+          <i class="fa-solid fa-file-excel text-xl text-emerald-200"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight">EMI Calculator.xlsx</h1>
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-900/60 text-emerald-100 border border-emerald-400/30">
+              Interactive Preview
+            </span>
+          </div>
+          <p class="text-xs text-emerald-100/90">Multi-Frequency Loan Amortization & Sensitivity Model</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-2">
+        <button id="btnReset" class="px-3 py-2 text-xs sm:text-sm font-medium bg-white/10 hover:bg-white/20 text-white rounded-xl border border-white/20 transition flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Reset Defaults</span>
+        </button>
+        <button id="btnExportCSV" class="px-3 py-2 text-xs sm:text-sm font-medium bg-white text-excel-800 hover:bg-emerald-50 rounded-xl shadow-sm transition flex items-center gap-1.5 font-semibold cursor-pointer">
+          <i class="fa-solid fa-download"></i>
+          <span>Export Schedule CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Formula Bar Simulation -->
+    <div class="bg-slate-50 text-slate-700 border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-1.5 text-xs flex items-center gap-3 overflow-x-auto">
+      <span id="activeCellBadge" class="font-mono font-semibold bg-white border border-slate-300 px-2 py-0.5 rounded text-slate-700 shrink-0">
+        C10
+      </span>
+      <span class="text-slate-400 font-serif italic font-bold shrink-0">fx</span>
+      <span id="formulaBarText" class="formula-bar text-slate-700 whitespace-nowrap">
+        =PMT(C8/C11, C9*C11, -(C7-C6))
+      </span>
+    </div>
+  </header>
+
+  <!-- Toast Notification Banner (No alert() used) -->
+  <div id="toastBanner" class="fixed bottom-16 right-4 z-50 hidden transform transition-all duration-300">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 flex items-center gap-2.5 text-sm">
+      <i class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toastMessage">Action completed</span>
+    </div>
+  </div>
+
+  <!-- Main Workspace Area -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ==================== TAB 1: EMI CALCULATOR ==================== -->
+    <section id="tab-calculator" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Loan Inputs Panel (Matches Excel C6:C12) -->
+        <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-slate-50 border-b border-slate-200 px-5 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-excel-600"></span>
+              <h2 class="font-semibold text-slate-800 text-sm sm:text-base">Loan Parameters</h2>
+            </div>
+            <span class="text-xs font-mono text-slate-400">Cells C6:C12</span>
+          </div>
+
+          <div class="p-5 space-y-4">
+            <!-- Downpayment (C6) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="inputDownpayment" class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Downpayment (₹)
+                </label>
+                <span class="text-xs font-mono text-slate-400">C6</span>
+              </div>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-3 flex items-center text-slate-400 font-medium">₹</span>
+                <input type="number" id="inputDownpayment" value="0" min="0" step="10000"
+                  class="w-full pl-8 pr-3 py-2.5 bg-amber-50/60 border border-amber-200 focus:border-excel-600 focus:ring-2 focus:ring-excel-600/20 rounded-xl font-mono text-sm font-medium text-slate-900 outline-none transition" />
+              </div>
+            </div>
+
+            <!-- Loan Amount (C7) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="inputLoanAmount" class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  Loan Amount (₹)
+                </label>
+                <span class="text-xs font-mono text-slate-400">C7</span>
+              </div>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-3 flex items-center text-slate-400 font-medium">₹</span>
+                <input type="number" id="inputLoanAmount" value="500000" min="1000" step="25000"
+                  class="w-full pl-8 pr-3 py-2.5 bg-amber-50/60 border border-amber-200 focus:border-excel-600 focus:ring-2 focus:ring-excel-600/20 rounded-xl font-mono text-sm font-medium text-slate-900 outline-none transition" />
+              </div>
+              <input type="range" id="sliderLoanAmount" min="50000" max="7000000" step="50000" value="500000"
+                class="w-full mt-2 accent-excel-700 cursor-pointer" />
+            </div>
+
+            <!-- Annual Interest Rate % (C8) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="inputInterestRate" class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    Annual Interest (%)
+                  </label>
+                  <span class="text-xs font-mono text-slate-400">C8</span>
+                </div>
+                <div class="relative">
+                  <input type="number" id="inputInterestRate" value="10" min="0.1" max="40" step="0.25"
+                    class="w-full pl-3 pr-8 py-2.5 bg-amber-50/60 border border-amber-200 focus:border-excel-600 focus:ring-2 focus:ring-excel-600/20 rounded-xl font-mono text-sm font-medium text-slate-900 outline-none transition" />
+                  <span class="absolute inset-y-0 right-3 flex items-center text-slate-400 font-medium">%</span>
+                </div>
+              </div>
+
+              <!-- Tenure in Years (C9) -->
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <label for="inputTenure" class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    Tenure (Years)
+                  </label>
+                  <span class="text-xs font-mono text-slate-400">C9</span>
+                </div>
+                <div class="relative">
+                  <input type="number" id="inputTenure" value="2" min="1" max="30" step="1"
+                    class="w-full pl-3 pr-12 py-2.5 bg-amber-50/60 border border-amber-200 focus:border-excel-600 focus:ring-2 focus:ring-excel-600/20 rounded-xl font-mono text-sm font-medium text-slate-900 outline-none transition" />
+                  <span class="absolute inset-y-0 right-3 flex items-center text-slate-400 text-xs font-medium">Yrs</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- EMI Frequency Dropdown (C10 / VLOOKUP to Raw Information) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="selectFrequency" class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  EMI Frequency
+                </label>
+                <span class="text-xs font-mono text-slate-400">VLOOKUP → C11</span>
+              </div>
+              <select id="selectFrequency"
+                class="w-full px-3 py-2.5 bg-amber-50/60 border border-amber-200 focus:border-excel-600 focus:ring-2 focus:ring-excel-600/20 rounded-xl text-sm font-medium text-slate-900 outline-none transition cursor-pointer">
+                <option value="Monthly" selected>Monthly (12 installments / year)</option>
+                <option value="Every 15 days">Every 15 days (24 installments / year)</option>
+                <option value="Fortnightly">Fortnightly (26 installments / year)</option>
+                <option value="BI-Monthly">BI-Monthly (6 installments / year)</option>
+                <option value="Half-Yearly">Half-Yearly (2 installments / year)</option>
+                <option value="Annually">Annually (1 installment / year)</option>
+                <option value="Weekly">Weekly (52 installments / year)</option>
+                <option value="Quarterly">Quarterly (4 installments / year)</option>
+              </select>
+            </div>
+
+            <!-- EMI Start Date (C12) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="inputStartDate" class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  First EMI Date
+                </label>
+                <button type="button" id="btnSetToday" class="text-xs text-excel-700 hover:underline font-medium cursor-pointer">
+                  Use Today's Date
+                </button>
+              </div>
+              <input type="date" id="inputStartDate" value="2007-02-15"
+                class="w-full px-3 py-2.5 bg-amber-50/60 border border-amber-200 focus:border-excel-600 focus:ring-2 focus:ring-excel-600/20 rounded-xl font-mono text-sm font-medium text-slate-900 outline-none transition" />
+            </div>
+
+            <!-- Derived Net Principal & Installment Count Info Strip -->
+            <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/80 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span class="text-slate-500 block">Net Financed Principal</span>
+                <span id="summaryNetPrincipal" class="font-mono font-bold text-slate-800 text-sm">₹5,00,000.00</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">Total Installments</span>
+                <span id="summaryTotalInstallments" class="font-mono font-bold text-slate-800 text-sm">24</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: KPI Summary Cards + Visual Breakdown -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+
+          <!-- 3 Primary KPI Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Periodic Installment -->
+            <div class="bg-gradient-to-br from-excel-700 to-excel-800 text-white rounded-2xl p-5 shadow-sm relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span id="kpiInstallmentLabel" class="text-xs font-semibold uppercase tracking-wider text-emerald-100">
+                  Monthly Installment
+                </span>
+                <i class="fa-solid fa-calculator text-emerald-200/80"></i>
+              </div>
+              <div id="kpiInstallmentValue" class="text-2xl sm:text-xl xl:text-2xl font-bold font-mono tracking-tight">
+                ₹23,072.46
+              </div>
+              <div class="mt-2 text-xs text-emerald-100/90 flex items-center gap-1">
+                <span class="font-mono bg-white/15 px-1.5 py-0.5 rounded">PMT()</span>
+                <span>per period</span>
+              </div>
+            </div>
+
+            <!-- Total Interest -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Total Interest
+                </span>
+                <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-percent"></i>
+                </span>
+              </div>
+              <div id="kpiTotalInterest" class="text-2xl sm:text-xl xl:text-2xl font-bold font-mono text-amber-600 tracking-tight">
+                ₹53,739.12
+              </div>
+              <div id="kpiInterestShareText" class="mt-2 text-xs text-slate-500">
+                9.70% of total payout
+              </div>
+            </div>
+
+            <!-- Total Repayment -->
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Total Repayment
+                </span>
+                <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-coins"></i>
+                </span>
+              </div>
+              <div id="kpiTotalRepayment" class="text-2xl sm:text-xl xl:text-2xl font-bold font-mono text-slate-800 tracking-tight">
+                ₹5,53,739.12
+              </div>
+              <div class="mt-2 text-xs text-slate-500">
+                Principal + Interest
+              </div>
+            </div>
+          </div>
+
+          <!-- Principal vs. Interest Visual Breakdown Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex-1 flex flex-col justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 class="font-semibold text-slate-800 text-sm sm:text-base">Principal vs. Interest Breakdown</h3>
+                <p class="text-xs text-slate-500">Proportional share of total loan repayment</p>
+              </div>
+              <div class="flex items-center gap-4 text-xs font-medium">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm bg-excel-700 inline-block"></span>
+                  Principal (<span id="legendPrincipalPct">90.3%</span>)
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-3 h-3 rounded-sm bg-amber-500 inline-block"></span>
+                  Interest (<span id="legendInterestPct">9.7%</span>)
+                </span>
+              </div>
+            </div>
+
+            <!-- Donut SVG + Horizontal Stacked Bar -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center my-auto">
+              <!-- SVG Donut Chart -->
+              <div class="sm:col-span-5 flex justify-center">
+                <div class="relative w-40 h-40">
+                  <svg viewBox="0 0 36 36" class="w-full h-full -rotate-90">
+                    <!-- Background Circle (Interest) -->
+                    <circle cx="18" cy="18" r="15.9155" fill="transparent" stroke="#f59e0b" stroke-width="3.8"></circle>
+                    <!-- Foreground Arc (Principal) -->
+                    <circle id="donutPrincipalArc" cx="18" cy="18" r="15.9155" fill="transparent" stroke="#107c41" stroke-width="3.8"
+                      stroke-dasharray="90.3 9.7" stroke-dashoffset="0" class="transition-all duration-500"></circle>
+                  </svg>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Principal</span>
+                    <span id="donutCenterPct" class="text-lg font-bold font-mono text-slate-800">90.3%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Detailed Breakdown Bars -->
+              <div class="sm:col-span-7 space-y-4">
+                <div>
+                  <div class="flex justify-between text-xs font-medium mb-1">
+                    <span class="text-slate-600">Net Principal Financed</span>
+                    <span id="barPrincipalAmount" class="font-mono font-semibold text-slate-800">₹5,00,000.00</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div id="barPrincipalFill" class="bg-excel-700 h-full rounded-full transition-all duration-500" style="width: 90.3%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs font-medium mb-1">
+                    <span class="text-slate-600">Total Interest Payable</span>
+                    <span id="barInterestAmount" class="font-mono font-semibold text-amber-600">₹53,739.12</span>
+                  </div>
+                  <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div id="barInterestFill" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 9.7%"></div>
+                  </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>First Installment Split:</span>
+                  <span id="firstInstallmentSplit" class="font-mono text-slate-700">
+                    Principal ₹18,905.79 | Interest ₹4,166.67
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- What-If Sensitivity Matrix / EMI Chart (Matches Excel Table on EMI Calculator tab) -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50 border-b border-slate-200 px-5 py-3.5 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="font-semibold text-slate-800 text-sm sm:text-base">
+              EMI Chart — What-If Sensitivity Matrix
+            </h3>
+            <p class="text-xs text-slate-500">
+              Periodic installment across Loan Amounts (<span class="font-mono">₹3,00,000</span> to <span class="font-mono">₹70,00,000</span>) & Tenures (<span class="font-mono">1</span> to <span class="font-mono">12</span> years) at <span id="matrixRateBadge" class="font-mono font-semibold text-excel-700">10%</span> (<span id="matrixFreqBadge" class="font-semibold text-excel-700">Monthly</span>)
+            </p>
+          </div>
+          <span class="text-xs bg-emerald-50 text-excel-800 border border-emerald-200 px-2.5 py-1 rounded-lg font-medium">
+            Click any cell to apply Loan & Tenure
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse text-xs font-mono">
+            <thead>
+              <tr id="matrixHeaderRow" class="bg-excel-700 text-white">
+                <!-- Populated dynamically via JS -->
+              </tr>
+            </thead>
+            <tbody id="matrixBody" class="divide-y divide-slate-200">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: PAYMENT SCHEDULE ==================== -->
+    <section id="tab-schedule" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <!-- Schedule Header & Controls -->
+        <div class="bg-slate-50 border-b border-slate-200 px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="font-semibold text-slate-800 text-base">Dynamic Payment Schedule (Amortization Table)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Generated using <span class="font-mono text-slate-700">EDATE / ROUND</span> date stepping, <span class="font-mono text-slate-700">PPMT</span>, and <span class="font-mono text-slate-700">IPMT</span>
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Quick Filter by Installment # or Year -->
+            <div class="relative">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="scheduleSearchInput" placeholder="Filter # or YYYY-MM..."
+                class="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-mono focus:border-excel-600 outline-none" />
+            </div>
+
+            <!-- Page Size Selector -->
+            <select id="schedulePageSize" class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-700 outline-none cursor-pointer">
+              <option value="24" selected>Show 24 rows</option>
+              <option value="50">Show 50 rows</option>
+              <option value="100">Show 100 rows</option>
+              <option value="all">Show All rows</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Schedule Totals Strip (Matches H6:H7 on Payment Schedule tab) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 px-5 py-3 bg-emerald-50/60 border-b border-slate-200 text-xs">
+          <div>
+            <span class="text-slate-500 block">Installments Scheduled</span>
+            <span id="schedSummaryCount" class="font-mono font-bold text-slate-800 text-sm">24</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Total Repayment</span>
+            <span id="schedSummaryRepayment" class="font-mono font-bold text-slate-800 text-sm">₹5,53,739.12</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Total Interest</span>
+            <span id="schedSummaryInterest" class="font-mono font-bold text-amber-700 text-sm">₹53,739.12</span>
+          </div>
+          <div>
+            <span class="text-slate-500 block">Final Payoff Date</span>
+            <span id="schedSummaryEndDate" class="font-mono font-bold text-excel-800 text-sm">2009-01-15</span>
+          </div>
+        </div>
+
+        <!-- Amortization Table -->
+        <div class="overflow-x-auto max-h-[540px]">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead class="bg-slate-100 text-slate-700 sticky top-0 z-10 border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4 font-semibold">Installment #</th>
+                <th class="py-3 px-4 font-semibold">Payment Date</th>
+                <th class="py-3 px-4 font-semibold text-right">Amount (PMT)</th>
+                <th class="py-3 px-4 font-semibold text-right">Principal (PPMT)</th>
+                <th class="py-3 px-4 font-semibold text-right">Interest (IPMT)</th>
+                <th class="py-3 px-4 font-semibold text-right">Remaining Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody" class="divide-y divide-slate-100 font-mono text-xs sm:text-sm">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="bg-slate-50 border-t border-slate-200 px-5 py-3 flex items-center justify-between text-xs text-slate-600">
+          <span id="schedulePaginationInfo">Showing 1–24 of 24 installments</span>
+          <div class="flex items-center gap-2">
+            <button id="btnPrevPage" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-40 cursor-pointer">
+              Previous
+            </button>
+            <button id="btnNextPage" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-40 cursor-pointer">
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: FUNCTIONS USED ==================== -->
+    <section id="tab-functions" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="mb-6">
+          <h2 class="text-lg font-bold text-slate-800">Excel Functions & Modeling Architecture</h2>
+          <p class="text-sm text-slate-500 mt-1">
+            Documentation of the 7 core Excel functions and dynamic worksheet features engineered inside <span class="font-mono text-slate-700">EMI Calculator.xlsx</span>.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Function Card 1: PMT -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-excel-700 text-white font-mono text-xs font-bold">PMT()</span>
+              <span class="text-xs text-slate-400">Financial Function</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">
+              Calculates the constant periodic loan payment based on a constant interest rate and payment schedule.
+            </p>
+            <code class="block bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800">
+              =PMT(rate/freq, tenure*freq, -(loan - downpayment))
+            </code>
+          </div>
+
+          <!-- Function Card 2: PPMT -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-excel-700 text-white font-mono text-xs font-bold">PPMT()</span>
+              <span class="text-xs text-slate-400">Principal Component</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">
+              Returns the principal portion of a specific installment period, increasing steadily over the loan's life.
+            </p>
+            <code class="block bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800">
+              =PPMT(rate/freq, period_no, total_periods, -net_loan)
+            </code>
+          </div>
+
+          <!-- Function Card 3: IPMT -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-excel-700 text-white font-mono text-xs font-bold">IPMT()</span>
+              <span class="text-xs text-slate-400">Interest Component</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">
+              Calculates the interest portion for a given installment period based on the reducing principal balance.
+            </p>
+            <code class="block bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800">
+              =IPMT(rate/freq, period_no, total_periods, -net_loan)
+            </code>
+          </div>
+
+          <!-- Function Card 4: VLOOKUP -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-blue-700 text-white font-mono text-xs font-bold">VLOOKUP()</span>
+              <span class="text-xs text-slate-400">Lookup & Reference</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">
+              Dynamically fetches the number of installments per year from the <span class="font-mono">Raw Information</span> tab when the user changes the EMI Frequency dropdown.
+            </p>
+            <code class="block bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800">
+              =VLOOKUP(C10, 'Raw Information '!$B$5:$C$12, 2, FALSE)
+            </code>
+          </div>
+
+          <!-- Function Card 5: EDATE -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-purple-700 text-white font-mono text-xs font-bold">EDATE()</span>
+              <span class="text-xs text-slate-400">Date & Time</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">
+              Advances installment dates cleanly by exact calendar months for Monthly, BI-Monthly, Quarterly, Half-Yearly, and Annual frequencies.
+            </p>
+            <code class="block bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800">
+              =EDATE(prev_date, 12 / installments_per_year)
+            </code>
+          </div>
+
+          <!-- Function Card 6: ROUND -->
+          <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-2.5 py-1 rounded-lg bg-amber-700 text-white font-mono text-xs font-bold">ROUND()</span>
+              <span class="text-xs text-slate-400">Math & Precision</span>
+            </div>
+            <p class="text-sm text-slate-700 mb-2">
+              Computes exact day intervals (<span class="font-mono">ROUND(365 / freq, 0)</span>) for sub-monthly schedules (Weekly, Fortnightly, Every 15 days).
+            </p>
+            <code class="block bg-white p-2 rounded-lg border border-slate-200 text-xs font-mono text-slate-800">
+              =prev_date + ROUND(365 / installments_per_year, 0)
+            </code>
+          </div>
+
+          <!-- Function Card 7: IF & Absolute References -->
+          <div class="md:col-span-2 p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:border-excel-600/40 transition">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-white font-mono text-xs font-bold">IF()</span>
+                <span class="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-800 font-mono text-xs font-bold">$A$1 Locking</span>
+              </div>
+              <span class="text-xs text-slate-400">Logical Control & Modeling</span>
+            </div>
+            <p class="text-sm text-slate-700">
+              Wraps schedule rows to automatically suppress rows beyond the active installment count (<span class="font-mono">IF(row &gt; total_installments, "", ...)</span>), paired with Data Validation dropdowns and mixed/absolute cell locking (<span class="font-mono">$</span>) for the What-If EMI sensitivity matrix.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: RAW INFORMATION ==================== -->
+    <section id="tab-raw" class="hidden space-y-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-3xl">
+        <div class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-slate-800 text-base">Raw Information — Frequency Lookup Table</h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              Source lookup range (<span class="font-mono">B5:C12</span>) referenced by <span class="font-mono">VLOOKUP</span> on the main calculator tab
+            </p>
+          </div>
+          <span class="text-xs font-mono bg-slate-200/70 text-slate-700 px-2.5 py-1 rounded-lg">8 Frequencies</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead class="bg-excel-700 text-white text-xs uppercase tracking-wider">
+              <tr>
+                <th class="py-3 px-6">Frequency Label (Col B)</th>
+                <th class="py-3 px-6 text-right">Installments / Year (Col C)</th>
+                <th class="py-3 px-6">Date Stepping Method</th>
+                <th class="py-3 px-6 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="rawTableBody" class="divide-y divide-slate-200 text-sm">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Excel Worksheet Tab Switcher Bar -->
+  <footer class="bg-slate-200 border-t border-slate-300 sticky bottom-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between overflow-x-auto">
+      <div class="flex items-center space-x-1 py-1.5" role="tablist" aria-label="Excel Worksheets">
+        <button type="button" data-tab="calculator"
+          class="ws-tab active px-4 py-2 text-xs sm:text-sm font-semibold rounded-t-lg border-b-2 border-excel-700 bg-white text-excel-800 shadow-sm flex items-center gap-2 whitespace-nowrap cursor-pointer">
+          <i class="fa-solid fa-table-cells text-excel-600"></i>
+          <span>EMI Calculator</span>
+        </button>
+
+        <button type="button" data-tab="schedule"
+          class="ws-tab px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg border-b-2 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+          <i class="fa-solid fa-calendar-days text-slate-400"></i>
+          <span>Payment Schedule</span>
+        </button>
+
+        <button type="button" data-tab="functions"
+          class="ws-tab px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg border-b-2 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+          <i class="fa-solid fa-code text-slate-400"></i>
+          <span>Functions Used</span>
+        </button>
+
+        <button type="button" data-tab="raw"
+          class="ws-tab px-4 py-2 text-xs sm:text-sm font-medium rounded-t-lg border-b-2 border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap cursor-pointer">
+          <i class="fa-solid fa-database text-slate-400"></i>
+          <span>Raw Information</span>
+        </button>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 text-xs text-slate-500 font-mono">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>READY • RECALCULATED</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    /**
+     * Frequency lookup table matching the 'Raw Information ' worksheet
+     */
+    const FREQUENCY_MAP = [
+      { label: 'Monthly', installmentsPerYear: 12, method: 'EDATE (+1 month)' },
+      { label: 'Every 15 days', installmentsPerYear: 24, method: 'ROUND(365/24, 0) = +15 days' },
+      { label: 'Fortnightly', installmentsPerYear: 26, method: 'ROUND(365/26, 0) = +14 days' },
+      { label: 'BI-Monthly', installmentsPerYear: 6, method: 'EDATE (+2 months)' },
+      { label: 'Half-Yearly', installmentsPerYear: 2, method: 'EDATE (+6 months)' },
+      { label: 'Annually', installmentsPerYear: 1, method: 'EDATE (+12 months)' },
+      { label: 'Weekly', installmentsPerYear: 52, method: 'ROUND(365/52, 0) = +7 days' },
+      { label: 'Quarterly', installmentsPerYear: 4, method: 'EDATE (+3 months)' }
+    ];
+
+    /**
+     * Sensitivity Matrix axes matching the Excel 'EMI Chart' table
+     */
+    const MATRIX_LOAN_AMOUNTS = [
+      300000, 400000, 500000, 600000, 800000, 1000000,
+      1500000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000
+    ];
+    const MATRIX_TENURES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+    // Application State
+    const state = {
+      downpayment: 0,
+      loanAmount: 500000,
+      annualRate: 10,
+      tenureYears: 2,
+      frequencyLabel: 'Monthly',
+      startDate: '2007-02-15',
+      currentPage: 1,
+      pageSize: 24,
+      searchQuery: '',
+      scheduleRows: []
+    };
+
+    // Indian Number Formatting Helper (e.g., 5,53,739.12)
+    function formatINR(num, decimals = 2) {
+      if (!isFinite(num) || isNaN(num)) return '₹0.00';
+      return '₹' + num.toLocaleString('en-IN', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    function formatNumber(num, decimals = 2) {
+      if (!isFinite(num) || isNaN(num)) return '0.00';
+      return num.toLocaleString('en-IN', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+
+    /**
+     * Excel Financial Formula Equivalents: PMT, IPMT, PPMT
+     */
+    function excelPMT(ratePerPeriod, totalPeriods, presentValue) {
+      if (totalPeriods <= 0 || presentValue <= 0) return 0;
+      if (ratePerPeriod === 0) return presentValue / totalPeriods;
+      const pvif = Math.pow(1 + ratePerPeriod, totalPeriods);
+      return (ratePerPeriod * presentValue * pvif) / (pvif - 1);
+    }
+
+    function excelIPMT(ratePerPeriod, period, totalPeriods, presentValue) {
+      if (period < 1 || period > totalPeriods || presentValue <= 0) return 0;
+      if (ratePerPeriod === 0) return 0;
+      const pmt = excelPMT(ratePerPeriod, totalPeriods, presentValue);
+      const balanceBeforePeriod =
+        presentValue * Math.pow(1 + ratePerPeriod, period - 1) -
+        pmt * ((Math.pow(1 + ratePerPeriod, period - 1) - 1) / ratePerPeriod);
+      return balanceBeforePeriod * ratePerPeriod;
+    }
+
+    function excelPPMT(ratePerPeriod, period, totalPeriods, presentValue) {
+      const pmt = excelPMT(ratePerPeriod, totalPeriods, presentValue);
+      const ipmt = excelIPMT(ratePerPeriod, period, totalPeriods, presentValue);
+      return pmt - ipmt;
+    }
+
+    /**
+     * Date stepping matching Excel EDATE vs ROUND(365/freq, 0) logic
+     */
+    function computeInstallmentDate(baseDateStr, periodIndex, installmentsPerYear) {
+      const parts = baseDateStr.split('-').map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return baseDateStr;
+      const [year, month, day] = parts;
+
+      // Period 1 is the start date itself
+      if (periodIndex === 1) {
+        return baseDateStr;
+      }
+
+      const steps = periodIndex - 1;
+
+      if (installmentsPerYear <= 12 && 12 % installmentsPerYear === 0) {
+        // Exact EDATE month addition
+        const monthsToAdd = steps * (12 / installmentsPerYear);
+        const targetYear = year + Math.floor((month - 1 + monthsToAdd) / 12);
+        const targetMonth = ((month - 1 + monthsToAdd) % 12) + 1;
+        const maxDaysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate();
+        const clampedDay = Math.min(day, maxDaysInTargetMonth);
+        return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}`;
+      } else {
+        // Day-interval stepping with ROUND(365 / installmentsPerYear, 0)
+        const stepDays = Math.round(365 / installmentsPerYear);
+        const dt = new Date(Date.UTC(year, month - 1, day));
+        dt.setUTCDate(dt.getUTCDate() + steps * stepDays);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+      }
+    }
+
+    /**
+     * Show non-blocking toast notification
+     */
+    let toastTimeout;
+    function showToast(msg) {
+      const banner = document.getElementById('toastBanner');
+      const msgEl = document.getElementById('toastMessage');
+      msgEl.textContent = msg;
+      banner.classList.remove('hidden');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        banner.classList.add('hidden');
+      }, 2800);
+    }
+
+    /**
+     * Recalculate all model outputs, schedules, and sensitivity tables
+     */
+    function recalculateAll() {
+      const freqObj = FREQUENCY_MAP.find(f => f.label === state.frequencyLabel) || FREQUENCY_MAP[0];
+      const freq = freqObj.installmentsPerYear;
+      const netPrincipal = Math.max(0, state.loanAmount - state.downpayment);
+      const totalInstallments = Math.max(1, Math.round(state.tenureYears * freq));
+      const ratePerPeriod = (state.annualRate / 100) / freq;
+
+      const periodicInstallment = excelPMT(ratePerPeriod, totalInstallments, netPrincipal);
+      const totalRepayment = periodicInstallment * totalInstallments;
+      const totalInterest = Math.max(0, totalRepayment - netPrincipal);
+
+      // Update Derived Info Strip & KPI Cards
+      document.getElementById('summaryNetPrincipal').textContent = formatINR(netPrincipal);
+      document.getElementById('summaryTotalInstallments').textContent = totalInstallments.toLocaleString('en-IN');
+
+      document.getElementById('kpiInstallmentLabel').textContent = `${state.frequencyLabel} Installment`;
+      document.getElementById('kpiInstallmentValue').textContent = formatINR(periodicInstallment);
+      document.getElementById('kpiTotalInterest').textContent = formatINR(totalInterest);
+      document.getElementById('kpiTotalRepayment').textContent = formatINR(totalRepayment);
+
+      // Update Donut & Breakdown Bars
+      const principalPct = totalRepayment > 0 ? (netPrincipal / totalRepayment) * 100 : 100;
+      const interestPct = totalRepayment > 0 ? 100 - principalPct : 0;
+
+      document.getElementById('kpiInterestShareText').textContent = `${interestPct.toFixed(2)}% of total payout`;
+      document.getElementById('legendPrincipalPct').textContent = `${principalPct.toFixed(1)}%`;
+      document.getElementById('legendInterestPct').textContent = `${interestPct.toFixed(1)}%`;
+      document.getElementById('donutCenterPct').textContent = `${principalPct.toFixed(1)}%`;
+      document.getElementById('donutPrincipalArc').setAttribute('stroke-dasharray', `${principalPct.toFixed(2)} ${interestPct.toFixed(2)}`);
+
+      document.getElementById('barPrincipalAmount').textContent = formatINR(netPrincipal);
+      document.getElementById('barInterestAmount').textContent = formatINR(totalInterest);
+      document.getElementById('barPrincipalFill').style.width = `${principalPct.toFixed(2)}%`;
+      document.getElementById('barInterestFill').style.width = `${interestPct.toFixed(2)}%`;
+
+      // First installment breakdown
+      const firstPrincipal = excelPPMT(ratePerPeriod, 1, totalInstallments, netPrincipal);
+      const firstInterest = excelIPMT(ratePerPeriod, 1, totalInstallments, netPrincipal);
+      document.getElementById('firstInstallmentSplit').textContent =
+        `Principal ${formatINR(firstPrincipal)} | Interest ${formatINR(firstInterest)}`;
+
+      // Build Full Payment Schedule
+      const rows = [];
+      let remainingBalance = netPrincipal;
+      for (let i = 1; i <= totalInstallments; i++) {
+        const ppmt = excelPPMT(ratePerPeriod, i, totalInstallments, netPrincipal);
+        const ipmt = excelIPMT(ratePerPeriod, i, totalInstallments, netPrincipal);
+        remainingBalance = Math.max(0, remainingBalance - ppmt);
+        const payDate = computeInstallmentDate(state.startDate, i, freq);
+
+        rows.push({
+          installmentNo: i,
+          date: payDate,
+          amount: periodicInstallment,
+          principal: ppmt,
+          interest: ipmt,
+          balance: remainingBalance
+        });
+      }
+      state.scheduleRows = rows;
+
+      // Update Schedule Summary Strip
+      document.getElementById('schedSummaryCount').textContent = totalInstallments.toLocaleString('en-IN');
+      document.getElementById('schedSummaryRepayment').textContent = formatINR(totalRepayment);
+      document.getElementById('schedSummaryInterest').textContent = formatINR(totalInterest);
+      document.getElementById('schedSummaryEndDate').textContent =
+        rows.length > 0 ? rows[rows.length - 1].date : state.startDate;
+
+      // Render Sensitivity Matrix & Schedule Table
+      renderSensitivityMatrix(freq, ratePerPeriod);
+      renderScheduleTable();
+    }
+
+    /**
+     * Render the What-If Sensitivity Matrix (Loan Amounts x Tenures)
+     */
+    function renderSensitivityMatrix(freq, ratePerPeriod) {
+      document.getElementById('matrixRateBadge').textContent = `${state.annualRate}%`;
+      document.getElementById('matrixFreqBadge').textContent = state.frequencyLabel;
+
+      const headerRow = document.getElementById('matrixHeaderRow');
+      headerRow.innerHTML = `<th class="py-2.5 px-3 text-left sticky left-0 bg-excel-800 z-10 border-r border-excel-600">Loan \\ Tenure</th>` +
+        MATRIX_TENURES.map(yr => {
+          const isCurrentTenure = yr === state.tenureYears;
+          return `<th class="py-2.5 px-3 whitespace-nowrap ${isCurrentTenure ? 'bg-amber-500 text-slate-900 font-bold' : ''}">${yr} Yr${yr > 1 ? 's' : ''}</th>`;
+        }).join('');
+
+      const tbody = document.getElementById('matrixBody');
+      tbody.innerHTML = MATRIX_LOAN_AMOUNTS.map(amt => {
+        const isCurrentLoan = amt === state.loanAmount;
+        const cells = MATRIX_TENURES.map(yr => {
+          const periods = yr * freq;
+          const pmt = excelPMT(ratePerPeriod, periods, amt);
+          const isExactMatch = isCurrentLoan && yr === state.tenureYears;
+          const isRowOrColMatch = isCurrentLoan || yr === state.tenureYears;
+
+          let cellClass = 'py-2 px-3 whitespace-nowrap cursor-pointer transition hover:bg-emerald-100 hover:text-excel-900 ';
+          if (isExactMatch) {
+            cellClass += 'bg-excel-700 text-white font-bold ring-2 ring-inset ring-amber-400';
+          } else if (isRowOrColMatch) {
+            cellClass += 'bg-emerald-50/80 text-slate-900 font-semibold';
+          } else {
+            cellClass += 'text-slate-600';
+          }
+
+          return `<td class="${cellClass}" data-loan="${amt}" data-tenure="${yr}" title="Click to apply ₹${amt.toLocaleString('en-IN')} for ${yr} yr(s)">
+            ${formatNumber(pmt, 0)}
+          </td>`;
+        }).join('');
+
+        return `<tr class="hover:bg-slate-50">
+          <td class="py-2 px-3 text-left font-semibold sticky left-0 z-10 border-r border-slate-200 whitespace-nowrap ${isCurrentLoan ? 'bg-amber-100 text-slate-900' : 'bg-slate-50 text-slate-800'}">
+            ${formatINR(amt, 0)}
+          </td>
+          ${cells}
+        </tr>`;
+      }).join('');
+
+      // Attach click handlers to matrix cells
+      tbody.querySelectorAll('td[data-loan]').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const loan = Number(cell.dataset.loan);
+          const tenure = Number(cell.dataset.tenure);
+          state.loanAmount = loan;
+          state.tenureYears = tenure;
+          state.downpayment = 0;
+
+          document.getElementById('inputDownpayment').value = 0;
+          document.getElementById('inputLoanAmount').value = loan;
+          document.getElementById('sliderLoanAmount').value = loan;
+          document.getElementById('inputTenure').value = tenure;
+
+          recalculateAll();
+          showToast(`Applied ₹${loan.toLocaleString('en-IN')} over ${tenure} year(s)`);
+        });
+      });
+    }
+
+    /**
+     * Render Paginated & Searchable Payment Schedule Table
+     */
+    function renderScheduleTable() {
+      const query = state.searchQuery.trim().toLowerCase();
+      const filtered = query
+        ? state.scheduleRows.filter(r =>
+            String(r.installmentNo).includes(query) ||
+            r.date.toLowerCase().includes(query)
+          )
+        : state.scheduleRows;
+
+      const totalFiltered = filtered.length;
+      const pageSize = state.pageSize === 'all' ? Math.max(1, totalFiltered) : Number(state.pageSize);
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize));
+      if (state.currentPage > totalPages) state.currentPage = totalPages;
+
+      const startIdx = (state.currentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, totalFiltered);
+      const slice = filtered.slice(startIdx, endIdx);
+
+      const tbody = document.getElementById('scheduleTableBody');
+      if (slice.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 font-sans">No matching installments found.</td></tr>`;
+      } else {
+        tbody.innerHTML = slice.map(row => `
+          <tr class="hover:bg-emerald-50/50 transition">
+            <td class="py-2.5 px-4 font-semibold text-slate-700">${row.installmentNo}</td>
+            <td class="py-2.5 px-4 text-slate-600">${row.date}</td>
+            <td class="py-2.5 px-4 text-right font-medium text-slate-800">${formatINR(row.amount)}</td>
+            <td class="py-2.5 px-4 text-right text-excel-700">${formatINR(row.principal)}</td>
+            <td class="py-2.5 px-4 text-right text-amber-600">${formatINR(row.interest)}</td>
+            <td class="py-2.5 px-4 text-right font-semibold text-slate-800">${formatINR(row.balance)}</td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('schedulePaginationInfo').textContent =
+        totalFiltered === 0
+          ? 'Showing 0 installments'
+          : `Showing ${startIdx + 1}–${endIdx} of ${totalFiltered} installments`;
+
+      document.getElementById('btnPrevPage').disabled = state.currentPage <= 1;
+      document.getElementById('btnNextPage').disabled = state.currentPage >= totalPages;
+    }
+
+    /**
+     * Render 'Raw Information' Lookup Table
+     */
+    function renderRawInformationTable() {
+      const tbody = document.getElementById('rawTableBody');
+      tbody.innerHTML = FREQUENCY_MAP.map(item => {
+        const isSelected = item.label === state.frequencyLabel;
+        return `
+          <tr class="${isSelected ? 'bg-emerald-50/80 font-medium' : 'hover:bg-slate-50'}">
+            <td class="py-3 px-6 text-slate-800 flex items-center gap-2">
+              <span>${item.label}</span>
+              ${isSelected ? '<span class="text-[10px] uppercase tracking-wider bg-excel-700 text-white px-2 py-0.5 rounded-full">Active</span>' : ''}
+            </td>
+            <td class="py-3 px-6 text-right font-mono font-semibold text-slate-800">${item.installmentsPerYear}</td>
+            <td class="py-3 px-6 font-mono text-xs text-slate-500">${item.method}</td>
+            <td class="py-3 px-6 text-center">
+              <button type="button" data-freq="${item.label}"
+                class="px-3 py-1 text-xs rounded-lg border border-slate-300 hover:border-excel-600 hover:text-excel-700 bg-white transition cursor-pointer">
+                Select
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tbody.querySelectorAll('button[data-freq]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.frequencyLabel = btn.dataset.freq;
+          document.getElementById('selectFrequency').value = state.frequencyLabel;
+          recalculateAll();
+          renderRawInformationTable();
+          switchTab('calculator');
+          showToast(`Frequency set to ${state.frequencyLabel}`);
+        });
+      });
+    }
+
+    /**
+     * Switch Active Worksheet Tab
+     */
+    function switchTab(tabName) {
+      const tabs = ['calculator', 'schedule', 'functions', 'raw'];
+      tabs.forEach(t => {
+        const section = document.getElementById(`tab-${t}`);
+        if (t === tabName) {
+          section.classList.remove('hidden');
+        } else {
+          section.classList.add('hidden');
+        }
+      });
+
+      // Update bottom worksheet tab button styling
+      document.querySelectorAll('.ws-tab').forEach(btn => {
+        const isTarget = btn.dataset.tab === tabName;
+        if (isTarget) {
+          btn.classList.add('active', 'border-excel-700', 'bg-white', 'text-excel-800', 'font-semibold', 'shadow-sm');
+          btn.classList.remove('border-transparent', 'text-slate-600', 'font-medium');
+        } else {
+          btn.classList.remove('active', 'border-excel-700', 'bg-white', 'text-excel-800', 'font-semibold', 'shadow-sm');
+          btn.classList.add('border-transparent', 'text-slate-600', 'font-medium');
+        }
+      });
+
+      // Update simulated formula bar context
+      const badge = document.getElementById('activeCellBadge');
+      const formulaText = document.getElementById('formulaBarText');
+      if (tabName === 'calculator') {
+        badge.textContent = 'C10';
+        formulaText.textContent = '=PMT(C8/C11, C9*C11, -(C7-C6))';
+      } else if (tabName === 'schedule') {
+        badge.textContent = 'D7:F7';
+        formulaText.textContent = '=IF(A7="","",PPMT(\'EMI Calculator \'!$C$8/\'EMI Calculator \'!$C$11, A7, $H$5, -NetLoan))';
+      } else if (tabName === 'functions') {
+        badge.textContent = 'DOC';
+        formulaText.textContent = '7 Core Functions: VLOOKUP, PMT, IPMT, PPMT, IF, ROUND, EDATE';
+      } else if (tabName === 'raw') {
+        badge.textContent = 'B5:C12';
+        formulaText.textContent = '=VLOOKUP(\'EMI Calculator \'!C10, \'Raw Information \'!$B$5:$C$12, 2, FALSE)';
+      }
+
+      if (tabName === 'raw') {
+        renderRawInformationTable();
+      }
+    }
+
+    /**
+     * Export Amortization Schedule to CSV
+     */
+    function exportScheduleCSV() {
+      const headers = ['Installment No', 'Payment Date', 'Amount', 'Principal', 'Interest', 'Remaining Balance'];
+      const lines = [headers.join(',')];
+      state.scheduleRows.forEach(r => {
+        lines.push([
+          r.installmentNo,
+          r.date,
+          r.amount.toFixed(2),
+          r.principal.toFixed(2),
+          r.interest.toFixed(2),
+          r.balance.toFixed(2)
+        ].join(','));
+      });
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `EMI_Schedule_${state.loanAmount}_${state.tenureYears}Yrs_${state.frequencyLabel.replace(/\s+/g, '_')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Amortization schedule exported to CSV');
+    }
+
+    // Wire Up Event Listeners on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      // Tab switching
+      document.querySelectorAll('.ws-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      // Loan Inputs
+      const inputDownpayment = document.getElementById('inputDownpayment');
+      const inputLoanAmount = document.getElementById('inputLoanAmount');
+      const sliderLoanAmount = document.getElementById('sliderLoanAmount');
+      const inputInterestRate = document.getElementById('inputInterestRate');
+      const inputTenure = document.getElementById('inputTenure');
+      const selectFrequency = document.getElementById('selectFrequency');
+      const inputStartDate = document.getElementById('inputStartDate');
+
+      inputDownpayment.addEventListener('input', () => {
+        state.downpayment = Math.max(0, Number(inputDownpayment.value) || 0);
+        recalculateAll();
+      });
+
+      inputLoanAmount.addEventListener('input', () => {
+        state.loanAmount = Math.max(0, Number(inputLoanAmount.value) || 0);
+        sliderLoanAmount.value = Math.min(7000000, state.loanAmount);
+        recalculateAll();
+      });
+
+      sliderLoanAmount.addEventListener('input', () => {
+        state.loanAmount = Number(sliderLoanAmount.value);
+        inputLoanAmount.value = state.loanAmount;
+        recalculateAll();
+      });
+
+      inputInterestRate.addEventListener('input', () => {
+        state.annualRate = Math.max(0, Number(inputInterestRate.value) || 0);
+        recalculateAll();
+      });
+
+      inputTenure.addEventListener('input', () => {
+        state.tenureYears = Math.max(1, Math.min(40, Number(inputTenure.value) || 1));
+        recalculateAll();
+      });
+
+      selectFrequency.addEventListener('change', () => {
+        state.frequencyLabel = selectFrequency.value;
+        state.currentPage = 1;
+        recalculateAll();
+      });
+
+      inputStartDate.addEventListener('change', () => {
+        if (inputStartDate.value) {
+          state.startDate = inputStartDate.value;
+          recalculateAll();
+        }
+      });
+
+      // Use Today's Date button
+      document.getElementById('btnSetToday').addEventListener('click', () => {
+        const today = new Date().toISOString().split('T')[0];
+        state.startDate = today;
+        inputStartDate.value = today;
+        recalculateAll();
+        showToast(`Start date set to ${today}`);
+      });
+
+      // Reset Defaults button
+      document.getElementById('btnReset').addEventListener('click', () => {
+        state.downpayment = 0;
+        state.loanAmount = 500000;
+        state.annualRate = 10;
+        state.tenureYears = 2;
+        state.frequencyLabel = 'Monthly';
+        state.startDate = '2007-02-15';
+        state.currentPage = 1;
+        state.searchQuery = '';
+
+        inputDownpayment.value = 0;
+        inputLoanAmount.value = 500000;
+        sliderLoanAmount.value = 500000;
+        inputInterestRate.value = 10;
+        inputTenure.value = 2;
+        selectFrequency.value = 'Monthly';
+        inputStartDate.value = '2007-02-15';
+        document.getElementById('scheduleSearchInput').value = '';
+
+        recalculateAll();
+        renderRawInformationTable();
+        showToast('Reset to original workbook defaults');
+      });
+
+      // Export CSV button
+      document.getElementById('btnExportCSV').addEventListener('click', exportScheduleCSV);
+
+      // Schedule Pagination & Search
+      document.getElementById('scheduleSearchInput').addEventListener('input', (e) => {
+        state.searchQuery = e.target.value;
+        state.currentPage = 1;
+        renderScheduleTable();
+      });
+
+      document.getElementById('schedulePageSize').addEventListener('change', (e) => {
+        state.pageSize = e.target.value;
+        state.currentPage = 1;
+        renderScheduleTable();
+      });
+
+      document.getElementById('btnPrevPage').addEventListener('click', () => {
+        if (state.currentPage > 1) {
+          state.currentPage--;
+          renderScheduleTable();
+        }
+      });
+
+      document.getElementById('btnNextPage').addEventListener('click', () => {
+        state.currentPage++;
+        renderScheduleTable();
+      });
+
+      // Initial Calculation & Render
+      recalculateAll();
+      renderRawInformationTable();
+    });
+  </script>
+</body>
+</html>
