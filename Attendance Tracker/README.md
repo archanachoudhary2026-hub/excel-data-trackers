@@ -6,7 +6,7 @@ An Excel attendance tracker I built as a practice project, using fictional demo 
 
 I made this tracker to practise Excel reporting for a real operations need: marking daily attendance, watching who needs attention, and working out monthly payout for contractual staff. All names and figures are made up for practice only. No real employees or payroll.
 
-![Dashboard preview](Attendance%20Dashboard%20-%20Oct%202026.png)
+![Dashboard preview](Preview%20Image.jpeg)
 
 ## What's in the workbook
 
